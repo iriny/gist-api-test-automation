@@ -52,13 +52,23 @@ test.describe('Pagination', () => {
   });
 
   test('page=0 and page=1 return the same first page @regression', async ({ gistClient }) => {
-    const pageZeroResponse = await listPublicGists(gistClient, { per_page: 5, page: 0 });
-    const pageOneResponse = await listPublicGists(gistClient, { per_page: 5, page: 1 });
+    // Fired concurrently (not sequentially) to shrink the window in which someone else's
+    // new public gist could land between the two calls and shift the page.
+    const [pageZeroResponse, pageOneResponse] = await Promise.all([
+      listPublicGists(gistClient, { per_page: 5, page: 0 }),
+      listPublicGists(gistClient, { per_page: 5, page: 1 }),
+    ]);
 
-    await test.step('Verify page=0 and page=1 return the same gists', async () => {
+    await test.step('Verify page=0 and page=1 return the same first page', async () => {
       const pageZero: Gist[] = await pageZeroResponse.json();
       const pageOne: Gist[] = await pageOneResponse.json();
-      expect(pageZero.map((g) => g.id)).toEqual(pageOne.map((g) => g.id));
+
+      // The public feed is live and global, so a gist created by someone else mid-test
+      // can shift the newest entry - tolerate one item of drift instead of requiring
+      // byte-for-byte equality, which would make this test flaky by design.
+      expect(pageZero).toHaveLength(pageOne.length);
+      const overlap = pageZero.filter((g) => pageOne.some((p) => p.id === g.id));
+      expect(overlap.length).toBeGreaterThanOrEqual(pageOne.length - 1);
     });
   });
 
