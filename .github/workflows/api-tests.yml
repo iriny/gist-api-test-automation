@@ -1,0 +1,81 @@
+name: Gist API tests
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  schedule:
+    # Full regression suite nightly, independent of push/PR activity.
+    - cron: '0 3 * * *'
+  workflow_dispatch:
+
+env:
+  BASE_URL: https://api.github.com
+  # Repo secret holding a classic PAT with the "gist" scope. Named to avoid colliding with
+  # the automatic GITHUB_TOKEN Actions provides, which does not have gist permissions.
+  GITHUB_TOKEN: ${{ secrets.GIST_TEST_TOKEN }}
+
+jobs:
+  smoke:
+    name: Smoke tests
+    if: github.event_name == 'pull_request' || github.event_name == 'push'
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [22]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run smoke tests
+        run: npm run test:smoke
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-smoke-node${{ matrix.node-version }}
+          path: playwright-report/
+          retention-days: 14
+
+  regression:
+    name: Full regression suite
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run full test suite
+        run: npm test
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-regression
+          path: playwright-report/
+          retention-days: 14
+
+      - name: Upload JSON results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-json
+          path: test-results/results.json
+          retention-days: 14
