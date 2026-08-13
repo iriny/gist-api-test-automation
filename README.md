@@ -5,6 +5,11 @@ with TypeScript and [`@playwright/test`](https://playwright.dev/docs/api-testing
 against the real `api.github.com` - no mocks - so they verify the actual contract, not an
 assumption about it.
 
+> **Using Claude Code?** This repo ships a `local-setup` skill
+> ([.claude/skills/local-setup/SKILL.md](.claude/skills/local-setup/SKILL.md)) that walks
+> through installing dependencies, configuring `GITHUB_TOKEN`, running the tests, and
+> generating the HTML report - just ask Claude to "set up this project locally."
+
 ## Why Playwright for API testing
 
 `@playwright/test` gives a test runner, fixtures, parallelism, retries, and HTML/JSON
@@ -39,6 +44,11 @@ npm run test:report   # open the last HTML report
 
 `npm run lint`, `npm run format:check`, and `npm run typecheck` run independently of the
 test suite and are meant to run in CI on every push regardless of whether tests run.
+
+Example HTML report (`npm run test:report`), grouped by spec file with pass/fail counts,
+per-test duration, and `@smoke`/`@regression` tags:
+
+![Example Playwright HTML report](docs/report-example.png)
 
 ## How auth works
 
