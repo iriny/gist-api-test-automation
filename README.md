@@ -70,30 +70,55 @@ threw, so tests never need their own `afterEach`/try-finally to stay clean. See
 ## Architecture
 
 ```
-src/api/          GistApiClient - one method per Gist endpoint, plus typed request/
-                   response interfaces (Gist, GistFile, GistComment, ...). Returns the raw
-                   Playwright APIResponse; no assertions, no test.step() - a thin wrapper
-                   around a single request.* call.
-src/helpers/      Reusable named step blocks, one file per feature domain (gistHelper,
-                   commentHelper, starHelper, forkHelper). Each function wraps one or more
-                   GistApiClient calls inside test.step() with a human-readable name that
-                   appears as its own node in the HTML report. The `*Response` form (e.g.
-                   createGistResponse) returns the raw response with no assertion,
-                   for tests where the status code under varying conditions is the point;
-                   the plain form (e.g. createGist) asserts the happy-path status
-                   and returns the parsed body, so setup code elsewhere doesn't repeat the
-                   same check.
-src/fixtures/     Playwright fixtures: authenticated/unauthenticated/invalid-token
-                   clients, auto-cleanup, and buildGistPayload() - a test data builder
-                   with sensible defaults you override per test.
-src/data/         Named constants for edge-case payloads (unicode, empty content,
-                   duplicate filenames, oversized content, malformed JSON) and stable
-                   third-party fixtures (e.g. the octocat gist used for fork tests,
-                   since GitHub rejects forking your own gist).
-tests/api/gists/  One spec file per feature area, each independently runnable. Specs
-                   call step helpers (and add their own one-off `test.step('Verify ...')`
-                   blocks for assertions specific to that test) - no raw `request.*` or
-                   bare `gistClient.*` calls with inline `expect()` in a spec body.
+src/
+├── api/
+│   ├── GistApiClient.ts    # One method per Gist endpoint. Returns the raw Playwright
+│   │                       # APIResponse; no assertions, no test.step() - a thin
+│   │                       # wrapper around a single request.* call.
+│   ├── types.ts            # Typed request/response interfaces (Gist, GistFile,
+│   │                       # GistComment, ...)
+│   └── index.ts
+├── helpers/                # Reusable named step blocks, one file per feature domain.
+│   │                       # Each function wraps one or more GistApiClient calls inside
+│   │                       # test.step() with a human-readable name that appears as its
+│   │                       # own node in the HTML report. The `*Response` form (e.g.
+│   │                       # createGistResponse) returns the raw response with no
+│   │                       # assertion, for tests where the status code under varying
+│   │                       # conditions is the point; the plain form (e.g. createGist)
+│   │                       # asserts the happy-path status and returns the parsed body,
+│   │                       # so setup code elsewhere doesn't repeat the same check.
+│   ├── gistHelper.ts
+│   ├── commentHelper.ts
+│   ├── starHelper.ts
+│   └── forkHelper.ts
+├── fixtures/
+│   └── index.ts            # Playwright fixtures: authenticated/unauthenticated/
+│                           # invalid-token clients, auto-cleanup, and
+│                           # buildGistPayload() - a test data builder with sensible
+│                           # defaults you override per test.
+└── data/                   # Named constants for edge-case payloads (unicode, empty
+    │                       # content, duplicate filenames, oversized content,
+    │                       # malformed JSON) and stable third-party fixtures (e.g. the
+    │                       # octocat gist used for fork tests, since GitHub rejects
+    │                       # forking your own gist).
+    ├── edgeCasePayloads.ts
+    └── wellKnownGists.ts
+
+tests/
+└── api/
+    └── gists/              # One spec file per feature area, each independently
+        │                   # runnable. Specs call step helpers (and add their own
+        │                   # one-off `test.step('Verify ...')` blocks for assertions
+        │                   # specific to that test) - no raw `request.*` or bare
+        │                   # `gistClient.*` calls with inline `expect()` in a spec body.
+        ├── auth.spec.ts
+        ├── comments.spec.ts
+        ├── crud.spec.ts
+        ├── forks.spec.ts
+        ├── pagination.spec.ts
+        ├── stars.spec.ts
+        ├── validation.spec.ts
+        └── visibility.spec.ts
 ```
 
 The split exists so that adding a new resource (say, GitHub Issues or Repos) means adding
