@@ -2,9 +2,9 @@ name: Gist API tests
 
 on:
   pull_request:
-    branches: [main]
+    branches: [master]
   push:
-    branches: [main]
+    branches: [master]
   schedule:
     # Full regression suite nightly, independent of push/PR activity.
     - cron: '0 3 * * *'
@@ -48,7 +48,7 @@ jobs:
 
   regression:
     name: Full regression suite
-    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/master')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
